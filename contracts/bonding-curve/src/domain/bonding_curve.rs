@@ -174,7 +174,7 @@ mod test {
         assert_eq!(bought.tokens_bought, maximum_supply);
         assert_eq!(bought.rest_native_amount, Uint128::zero());
     }
-#[test]
+    #[test]
     fn create_realistic_bonding_curve_and_buy_all_supply() {
         let tier_prices = build_tier_prices();
         let tokens_per_tier = 100_000_000_000u128;

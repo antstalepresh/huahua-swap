@@ -1,6 +1,6 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_json_binary, Addr, BankMsg, BankQuery, Binary, Coin, Decimal, Deps, DepsMut, Env, MessageInfo, QueryRequest, Response, StdResult, Uint128};
+use cosmwasm_std::{to_json_binary, Addr, BankMsg, Binary, Coin, Decimal, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint128};
 // use cw2::set_contract_version;
 
 use crate::domain::bonding_curve::BondingCurve;
@@ -43,6 +43,8 @@ pub fn instantiate(
                 completed: false,
                 fee_percent: Decimal::from_ratio(1u128, 100u128),
                 fee_collector_address: fee_collector_address,
+                token_sold: 0,
+                reserve_token_amount:0,
             };
             // Stockez la configuration dans le state
             CONFIG.save(deps.storage, &config)?;
@@ -105,9 +107,9 @@ pub fn query(_deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::TokenPrice {} => {
             let config = CONFIG.load(_deps.storage)?;
-            let token_balance = query_contract_balance(_deps, _env.contract.address.to_string(), config.token_denom.clone())?;
-            let reserve_token_balance = query_contract_balance(_deps, _env.contract.address.to_string(), "uhuahua".to_string())?;
-            let bonding_curve = BondingCurve::exp_bonding_curve(token_balance.amount, reserve_token_balance.amount);
+            let token_balance = config.token_sold;
+            let reserve_token_balance = config.reserve_token_amount;
+            let bonding_curve = BondingCurve::exp_bonding_curve(Uint128::from(token_balance), Uint128::from(reserve_token_balance));
             let token_price = bonding_curve.current_price();
             let price = Coin::new(token_price,"uhuahua".to_string());
             to_json_binary(&price)
@@ -116,19 +118,12 @@ pub fn query(_deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 }
 
 
-pub fn query_contract_balance(deps: Deps, contract_address: String, denom: String) -> StdResult<Coin> {
-    let balance: Coin = deps.querier.query(&QueryRequest::Bank(BankQuery::Balance {
-        address: contract_address,
-        denom: denom,
-    }))?;
-    Ok(balance)
-}
 
 fn execute_buy(deps: DepsMut, env: Env, amount: Uint128, sender: Addr) -> Result<Response, ContractError> {
-    let config = CONFIG.load(deps.storage)?;
-    let token_balance = query_contract_balance(deps.as_ref(), env.contract.address.to_string(), config.token_denom.clone())?;
-    let reserve_token_balance = query_contract_balance(deps.as_ref(), env.contract.address.to_string(), "uhuahua".to_string())?;
-    let mut bonding_curve = BondingCurve::exp_bonding_curve(token_balance.amount, reserve_token_balance.amount);
+    let mut config = CONFIG.load(deps.storage)?;
+    let token_balance = config.token_sold;
+    let reserve_token_balance = config.reserve_token_amount;
+    let mut bonding_curve = BondingCurve::exp_bonding_curve(Uint128::from(token_balance), Uint128::from(reserve_token_balance));
     let fee_amount = calculate_fee(config.clone(), amount);
     let amount = amount.saturating_sub(fee_amount);
     let buy_event = bonding_curve.buy(amount);
@@ -138,6 +133,10 @@ fn execute_buy(deps: DepsMut, env: Env, amount: Uint128, sender: Addr) -> Result
                 denom: config.token_denom.clone(),
                 amount: bought.tokens_bought,
             };
+
+            config.token_sold += bought.tokens_bought.u128();
+            config.reserve_token_amount += amount.u128();
+            CONFIG.save(deps.storage, &config)?;
         
             // Construire le message pour envoyer des tokens
             let send_msg = BankMsg::Send {
@@ -170,17 +169,22 @@ fn execute_buy(deps: DepsMut, env: Env, amount: Uint128, sender: Addr) -> Result
     }
 }
 
-fn execute_sell(deps: DepsMut,config:Config, env: Env, amount: Uint128, sender: Addr) -> Result<Response, ContractError> {
+fn execute_sell(deps: DepsMut,mut config:Config, env: Env, amount: Uint128, sender: Addr) -> Result<Response, ContractError> {
     
-    let token_balance = query_contract_balance(deps.as_ref(), env.contract.address.to_string(), config.token_denom.clone())?;
-    let reserve_token_balance = query_contract_balance(deps.as_ref(), env.contract.address.to_string(), "uhuahua".to_string())?;
-    let mut bonding_curve = BondingCurve::exp_bonding_curve(token_balance.amount, reserve_token_balance.amount);
+    let token_balance = config.token_sold;
+    let reserve_token_balance = config.reserve_token_amount;
+    let mut bonding_curve = BondingCurve::exp_bonding_curve(Uint128::from(token_balance), Uint128::from(reserve_token_balance));
     let sell_event = bonding_curve.sell(amount);
     
     match sell_event {
         Ok(sold) => {
             let fee_amount = calculate_fee(config.clone(), sold.reserve_token_bought);
             let amount_to_send = amount.saturating_sub(fee_amount);
+            
+            config.token_sold -= amount.u128();
+            config.reserve_token_amount -= amount_to_send.u128();
+            CONFIG.save(deps.storage, &config)?;
+            
             let token_to_send = Coin {
                 denom: "uhuahua".to_string(),
                 amount: amount_to_send,

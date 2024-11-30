@@ -9,9 +9,19 @@ pub struct InstantiateMsg {
 pub enum ExecuteMsg {
     CreateToken{
         subdenom: String,
+        description:String,
+        url:String,
     }
 }
 
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {}
+
+
+
+#[cw_serde]
+pub struct BondingCurveInstantiateMsg {
+    pub token_denom: String,
+    pub fee_collector_address: String,
+}

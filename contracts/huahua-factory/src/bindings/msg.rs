@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{CosmosMsg, CustomMsg, Uint128};
+use cosmwasm_std::{CosmosMsg, CustomMsg, Uint128, WasmMsg};
 
 
 
@@ -62,7 +62,7 @@ pub enum OsmosisMsg {
 #[cw_serde]
 pub struct Metadata {
     pub description : String,
-    pub denom_units: DenomUnit,
+    pub denom_units: Vec<DenomUnit>,
     pub base: String,
     pub display: String,
     pub name: String,
@@ -109,3 +109,30 @@ impl From<OsmosisMsg> for CosmosMsg<OsmosisMsg> {
 }
 
 impl CustomMsg for OsmosisMsg {}
+
+
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum AppMsg {
+    Osmosis(OsmosisMsg),
+    Wasm(WasmMsg),
+}
+
+impl From<OsmosisMsg> for AppMsg {
+    fn from(msg: OsmosisMsg) -> Self {
+        AppMsg::Osmosis(msg)
+    }
+}
+
+impl From<WasmMsg> for AppMsg {
+    fn from(msg: WasmMsg) -> Self {
+        AppMsg::Wasm(msg)
+    }
+}
+
+
+impl From<AppMsg> for CosmosMsg<AppMsg> {
+    fn from(msg: AppMsg) -> Self {
+        CosmosMsg::Custom(msg)
+    }
+}

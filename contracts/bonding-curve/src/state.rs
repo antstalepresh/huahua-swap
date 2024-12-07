@@ -1,10 +1,11 @@
+use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Decimal};
 use cw_storage_plus::Item;
-use cosmwasm_schema::cw_serde;
 
 #[cw_serde]
 pub struct Config {
     pub token_denom: String,
+    pub subdenom: String,
     pub manager_contract: Addr,
     pub completed: bool,
     pub fee_percent: Decimal,

@@ -2,13 +2,13 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_json_binary, Addr, BankMsg, Binary, Coin, Decimal, Deps, DepsMut, Env, MessageInfo,
-    Response, StdResult, Uint128,
+    Response, StdResult, Uint128, WasmMsg,
 };
 // use cw2::set_contract_version;
 
 use crate::domain::bonding_curve::BondingCurve;
 use crate::error::ContractError;
-use crate::msg::{CurveState, ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{CompleteBondingCurve, CurveState, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{Config, CONFIG};
 
 /*
@@ -152,10 +152,6 @@ fn execute_buy(
                 amount: bought.tokens_bought,
             };
 
-            config.token_sold += bought.tokens_bought.u128();
-            config.reserve_token_amount += amount.u128();
-            CONFIG.save(deps.storage, &config)?;
-
             // Construire le message pour envoyer des tokens
             let send_msg = BankMsg::Send {
                 to_address: sender.to_string(), // Adresse de l'utilisateur
@@ -170,13 +166,30 @@ fn execute_buy(
                 }],
             };
 
-            let response = Response::new()
+            let mut response = Response::new()
                 .add_message(send_msg)
                 .add_message(send_fee_msg) // Ajouter le message BankMsg::Send
                 .add_attribute("action", "buy")
                 .add_attribute("buyer", sender.to_string())
                 .add_attribute("amount", token_to_send.amount.to_string())
                 .add_attribute("denom", token_to_send.denom);
+
+            config.token_sold += bought.tokens_bought.u128();
+            config.reserve_token_amount += amount.u128();
+
+            if (config.token_sold == 12_000_000_000_000u128) {
+                config.completed = true;
+                let complete_msg = CompleteBondingCurve {
+                    subdenom: config.subdenom.to_string(),
+                };
+                let execute_bonding_curve_msg = WasmMsg::Execute {
+                    contract_addr: config.manager_contract.to_string(),
+                    msg: to_json_binary(&complete_msg)?,
+                    funds: vec![],
+                };
+                response = response.add_message(execute_bonding_curve_msg);
+            }
+            CONFIG.save(deps.storage, &config)?;
 
             Ok(response)
         }

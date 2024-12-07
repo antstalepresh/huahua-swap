@@ -30,3 +30,8 @@ pub struct CurveState {
     pub completed: bool,
     pub price: Coin,
 }
+
+#[cw_serde]
+pub struct CompleteBondingCurve {
+    pub subdenom: String,
+}

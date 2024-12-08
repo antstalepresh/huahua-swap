@@ -6,7 +6,8 @@ use cw_storage_plus::{Item, Map};
 pub struct Config {
     pub bonding_curve_code_id: u128,
     pub admin: Addr,
-    pub fee_collector_address: Addr,
+    pub fee_swap_collector_address: Addr,
+    pub reserve_collector_address: Addr,
 }
 #[cw_serde]
 pub struct CurrentCreation {

@@ -174,6 +174,18 @@ fn execute_buy(
                 .add_attribute("amount", token_to_send.amount.to_string())
                 .add_attribute("denom", token_to_send.denom);
 
+            if bought.rest_native_amount > Uint128::zero() {
+                //return rest to user
+                let send_msg = BankMsg::Send {
+                    to_address: sender.to_string(), // Adresse de l'utilisateur
+                    amount: vec![Coin {
+                        denom: "uhuahua".to_string(),
+                        amount: bought.rest_native_amount,
+                    }],
+                };
+                response = response.add_message(send_msg);
+            }
+
             config.token_sold += bought.tokens_bought.u128();
             config.reserve_token_amount += amount.u128();
 

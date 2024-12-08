@@ -10,9 +10,11 @@ pub enum ContractError {
     Unauthorized {},
     // Add any other custom errors you like here.
     // Look at https://docs.rs/thiserror/1.0.21/thiserror/ for details.
-
     #[error("Empty response from sub-message")]
     EmptyResponse,
+
+    #[error("Invalid funds")]
+    InvalidFunds {},
 
     #[error("Error during sub-message execution: {0}")]
     SubMessageError(String),

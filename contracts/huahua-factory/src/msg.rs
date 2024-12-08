@@ -5,7 +5,8 @@ use crate::state::Token;
 #[cw_serde]
 pub struct InstantiateMsg {
     pub bonding_curve_code_id: u128,
-    pub fee_collector_address: String,
+    pub fee_swap_collector_address: String,
+    pub reserve_collector_address: String,
 }
 
 #[cw_serde]

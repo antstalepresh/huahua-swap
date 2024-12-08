@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_json_binary, Addr, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Reply,
+    to_json_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Reply,
     Response, StdResult, SubMsg, SubMsgResult, Uint128, WasmMsg,
 };
 use cw_storage_plus::Bound;
@@ -11,8 +11,9 @@ use prost::Message;
 use crate::bindings::msg::MsgInstantiateContractResponse;
 use crate::bindings::pb::cosmos::bank::v1beta1::{DenomUnit, Metadata};
 use crate::bindings::pb::cosmos::base;
+use crate::bindings::pb::liquidity::v1beta1::MsgCreatePool;
 use crate::bindings::pb::osmosis::tokenfactory::v1beta1::{
-    MsgCreateDenom, MsgCreateDenomResponse, MsgMint, MsgSetDenomMetadata,
+    MsgCreateDenom, MsgCreateDenomResponse, MsgCreateStakeDrop, MsgMint, MsgSetDenomMetadata,
 };
 use crate::error::ContractError;
 use crate::msg::{
@@ -32,6 +33,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const CREATE_DENOM_REPLY_ID: u64 = 1;
 const INSTANTIATE_BONDING_CURVE_REPLY_ID: u64 = 2;
+const WOOF_BLOCK_NUMBER: i64 = 2315156;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -40,13 +42,17 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    let fee_collector_address = deps
+    let fee_swap_collector_address = deps
         .api
-        .addr_validate(msg.fee_collector_address.clone().as_ref())?;
+        .addr_validate(msg.fee_swap_collector_address.clone().as_ref())?;
+    let reserve_collector_address = deps
+        .api
+        .addr_validate(msg.reserve_collector_address.clone().as_ref())?;
     let config = Config {
         bonding_curve_code_id: msg.bonding_curve_code_id,
         admin: info.sender,
-        fee_collector_address: fee_collector_address,
+        fee_swap_collector_address: fee_swap_collector_address,
+        reserve_collector_address: reserve_collector_address,
     };
     CONFIG.save(deps.storage, &config)?;
     Ok(Response::new())
@@ -72,9 +78,92 @@ pub fn execute(
                     msg: "Token already completed".to_string(),
                 });
             } else {
-                unimplemented!("CompleteBondingCurve not implemented, should launch stakedrop and create pool on liquidity module");
+                if info.funds.is_empty() {
+                    return Err(ContractError::InvalidFunds {});
+                }
+                if info.funds.len() > 1 {
+                    return Err(ContractError::InvalidFunds {});
+                }
+                let reserve = info.funds[0].clone();
+                if reserve.denom != "uhuahua" {
+                    return Err(ContractError::InvalidFunds {});
+                }
+                if reserve.amount <= Uint128::from(20_000_000_000_000u128) {
+                    //amount should be 60M but at least 20M
+                    return Err(ContractError::InvalidFunds {});
+                }
+                let config = CONFIG.load(deps.storage)?;
+                if token.completed {
+                    return Err(ContractError::CustomError {
+                        msg: "Token already completed".to_string(),
+                    });
+                }
+                if token.bonding_curve_address != info.sender {
+                    return Err(ContractError::Unauthorized {});
+                }
+
+                let create_stakedrop_msg = MsgCreateStakeDrop {
+                    sender: env.contract.address.to_string(),
+                    amount: Some(base::v1beta1::Coin {
+                        denom: subdenom.clone(),
+                        amount: Uint128::from(5_000_000_000_000u128).to_string(),
+                    }),
+                    start_block: env.block.height as i64 + 2,
+                    end_block: env.block.height as i64 + 2 + WOOF_BLOCK_NUMBER,
+                };
+
+                let mut create_stakedrop_data = Vec::new();
+                create_stakedrop_msg
+                    .encode(&mut create_stakedrop_data)
+                    .unwrap();
+                let create_stakedrop: CosmosMsg = CosmosMsg::Any(cosmwasm_std::AnyMsg {
+                    type_url: "/osmosis.tokenfactory.v1beta1.MsgCreateStakeDrop".to_string(),
+                    value: Binary::from(create_stakedrop_data).into(),
+                });
+
+                let create_pool_msg = MsgCreatePool {
+                    pool_creator_address: env.contract.address.to_string(),
+                    pool_type_id: 1,
+                    deposit_coins: vec![
+                        base::v1beta1::Coin {
+                            denom: subdenom.clone(),
+                            amount: Uint128::from(4_000_000_000_000u128).to_string(),
+                        },
+                        base::v1beta1::Coin {
+                            denom: "uhuahua".to_string(),
+                            amount: Uint128::from(20_000_000_000_000u128).to_string(),
+                        },
+                    ],
+                };
+
+                let mut create_pool_data = Vec::new();
+                create_pool_msg.encode(&mut create_pool_data).unwrap();
+                let create_pool: CosmosMsg = CosmosMsg::Any(cosmwasm_std::AnyMsg {
+                    type_url: "/liquidity.v1beta1.MsgCreatePool".to_string(),
+                    value: Binary::from(create_pool_data).into(),
+                });
+                let token_to_send = Coin {
+                    denom: "uhuahua".to_string(),
+                    amount: reserve
+                        .amount
+                        .saturating_sub(Uint128::from(20_000_000_000_000u128)),
+                };
+                let send_msg = BankMsg::Send {
+                    to_address: config.reserve_collector_address.to_string(), // Adresse de l'utilisateur
+                    amount: vec![token_to_send.clone()],
+                };
+
+                token.completed = true;
+                TOKENS.save(deps.storage, subdenom.clone(), &token)?;
+
+                let resp = Response::new()
+                    .add_attribute("action", "create_denom_and_stakedrop")
+                    //  .add_attribute("token factory params ", format!("{:?}",resp.params))
+                    .add_message(create_stakedrop)
+                    .add_message(send_msg)
+                    .add_message(create_pool);
+                Ok(resp)
             }
-            Ok(Response::new())
         }
     }
 }
@@ -291,7 +380,7 @@ fn create_bonding_curve_instantiate_msg(
     let instantiate_msg = BondingCurveInstantiateMsg {
         token_denom: new_token_denom.clone(),
         subdenom: current_creation.subdenom.clone(),
-        fee_collector_address: config.fee_collector_address.to_string(),
+        fee_collector_address: config.fee_swap_collector_address.to_string(),
     };
     let bonding_curve_msg = WasmMsg::Instantiate {
         admin: Some(config.admin.to_string()), // Optionnel : Adresse admin

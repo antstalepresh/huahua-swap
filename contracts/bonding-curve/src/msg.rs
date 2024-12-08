@@ -32,6 +32,10 @@ pub struct CurveState {
 }
 
 #[cw_serde]
+pub struct CompleteBondingCurveMsg {
+    pub complete_bonding_curve: CompleteBondingCurve,
+}
+#[cw_serde]
 pub struct CompleteBondingCurve {
     pub subdenom: String,
 }

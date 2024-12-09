@@ -189,7 +189,7 @@ fn execute_buy(
             config.token_sold += bought.tokens_bought.u128();
             config.reserve_token_amount += amount.u128();
 
-            if (config.token_sold == 12_000_000_000_000u128) {
+            if config.token_sold == 12_000_000_000_000u128 {
                 config.completed = true;
                 let complete_msg = CompleteBondingCurve {
                     subdenom: config.subdenom.to_string(),
@@ -229,10 +229,10 @@ fn execute_sell(
     match sell_event {
         Ok(sold) => {
             let fee_amount = calculate_fee(config.clone(), sold.reserve_token_bought);
-            let amount_to_send = amount.saturating_sub(fee_amount);
+            let amount_to_send = sold.reserve_token_bought.saturating_sub(fee_amount);
 
             config.token_sold -= amount.u128();
-            config.reserve_token_amount -= amount_to_send.u128();
+            config.reserve_token_amount -= sold.reserve_token_bought.u128();
             CONFIG.save(deps.storage, &config)?;
 
             let token_to_send = Coin {

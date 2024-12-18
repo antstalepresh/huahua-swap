@@ -1,0 +1,8 @@
+{
+    "chain_id": "huahua-dev",
+    "rpc_node": "http://127.0.0.1:26657",
+    "api_node": "http://127.0.0.1:1317/",
+    "tx_sender_wallet": "victor",
+    "tx_sender_address": "chihuahua1gfdtavtutgn6ac0lfa47yp2894ewl4vu4580yk",
+    "fee_collector_address": "chihuahua17xpfvakm2amg962yls6f84z3kell8c5lnvww2l"
+}

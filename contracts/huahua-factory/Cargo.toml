@@ -43,3 +43,7 @@ prost = "0.13"
 
 [dev-dependencies]
 cw-multi-test = "2.0.0"
+
+[[bin]]
+name = "schema"
+path = "src/bin/schema.rs"

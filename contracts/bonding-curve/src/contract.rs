@@ -1,14 +1,16 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_json_binary, Addr, BankMsg, Binary, Coin, Decimal, Deps, DepsMut, Env, MessageInfo,
-    Response, StdResult, Uint128, WasmMsg,
+    to_json_binary, Addr, BankMsg, BankQuery, Binary, Coin, Decimal, Deps, DepsMut, Env,
+    MessageInfo, QueryRequest, Response, StdResult, Uint128, WasmMsg,
 };
 // use cw2::set_contract_version;
 
 use crate::domain::bonding_curve::BondingCurve;
 use crate::error::ContractError;
-use crate::msg::{CompleteBondingCurve, CurveState, ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{
+    CompleteBondingCurve, CompleteBondingCurveMsg, CurveState, ExecuteMsg, InstantiateMsg, QueryMsg,
+};
 use crate::state::{Config, CONFIG};
 
 /*
@@ -131,7 +133,7 @@ pub fn query(_deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 
 fn execute_buy(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     amount: Uint128,
     sender: Addr,
 ) -> Result<Response, ContractError> {
@@ -191,13 +193,20 @@ fn execute_buy(
 
             if config.token_sold == 12_000_000_000_000u128 {
                 config.completed = true;
-                let complete_msg = CompleteBondingCurve {
-                    subdenom: config.subdenom.to_string(),
+                let complete_msg = CompleteBondingCurveMsg {
+                    complete_bonding_curve: CompleteBondingCurve {
+                        subdenom: config.subdenom.to_string(),
+                    },
                 };
+                let huahua_balance: Coin =
+                    deps.querier.query(&QueryRequest::Bank(BankQuery::Balance {
+                        address: env.contract.address.to_string(),
+                        denom: "uhuahua".to_string(),
+                    }))?;
                 let execute_bonding_curve_msg = WasmMsg::Execute {
                     contract_addr: config.manager_contract.to_string(),
                     msg: to_json_binary(&complete_msg)?,
-                    funds: vec![],
+                    funds: vec![Coin::new(huahua_balance.amount, "uhuahua".to_string())],
                 };
                 response = response.add_message(execute_bonding_curve_msg);
             }

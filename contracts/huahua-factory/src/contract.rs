@@ -17,8 +17,8 @@ use crate::bindings::pb::osmosis::tokenfactory::v1beta1::{
 };
 use crate::error::ContractError;
 use crate::msg::{
-    BondingCurveInstantiateMsg, ExecuteMsg, InstantiateMsg, PaginatedTokensResponse, QueryMsg,
-    TokenInfoResponse,
+    BondingCurveInstantiateMsg, ConfigResponse, ExecuteMsg, InstantiateMsg,
+    PaginatedTokensResponse, QueryMsg, TokenInfoResponse,
 };
 use crate::state::{Config, CurrentCreation, Token, CONFIG, CURRENT_CREATION, TOKENS};
 
@@ -101,11 +101,11 @@ pub fn execute(
                 if token.bonding_curve_address != info.sender {
                     return Err(ContractError::Unauthorized {});
                 }
-
+                //Stakedrop issued token from bonding curve
                 let create_stakedrop_msg = MsgCreateStakeDrop {
                     sender: env.contract.address.to_string(),
                     amount: Some(base::v1beta1::Coin {
-                        denom: subdenom.clone(),
+                        denom: token.denom.clone(),
                         amount: Uint128::from(5_000_000_000_000u128).to_string(),
                     }),
                     start_block: env.block.height as i64 + 2,
@@ -115,10 +115,37 @@ pub fn execute(
                 let mut create_stakedrop_data = Vec::new();
                 create_stakedrop_msg
                     .encode(&mut create_stakedrop_data)
-                    .unwrap();
+                    .map_err(|err| ContractError::CustomError {
+                        msg: format!("Encode error: {:?}", err),
+                    })?;
                 let create_stakedrop: CosmosMsg = CosmosMsg::Any(cosmwasm_std::AnyMsg {
                     type_url: "/osmosis.tokenfactory.v1beta1.MsgCreateStakeDrop".to_string(),
                     value: Binary::from(create_stakedrop_data).into(),
+                });
+
+                //stakedrop native token
+                let create_native_stakedrop_msg = MsgCreateStakeDrop {
+                    sender: env.contract.address.to_string(),
+                    amount: Some(base::v1beta1::Coin {
+                        denom: "uhuahua".to_string(),
+                        amount: reserve
+                            .amount
+                            .saturating_sub(Uint128::from(20_000_000_000_000u128))
+                            .to_string(),
+                    }),
+                    start_block: env.block.height as i64 + 2,
+                    end_block: env.block.height as i64 + 2 + WOOF_BLOCK_NUMBER,
+                };
+
+                let mut create_native_stakedrop_data = Vec::new();
+                create_native_stakedrop_msg
+                    .encode(&mut create_native_stakedrop_data)
+                    .map_err(|err| ContractError::CustomError {
+                        msg: format!("Encode error: {:?}", err),
+                    })?;
+                let create_native_stakedrop: CosmosMsg = CosmosMsg::Any(cosmwasm_std::AnyMsg {
+                    type_url: "/osmosis.tokenfactory.v1beta1.MsgCreateStakeDrop".to_string(),
+                    value: Binary::from(create_native_stakedrop_data).into(),
                 });
 
                 let create_pool_msg = MsgCreatePool {
@@ -126,7 +153,7 @@ pub fn execute(
                     pool_type_id: 1,
                     deposit_coins: vec![
                         base::v1beta1::Coin {
-                            denom: subdenom.clone(),
+                            denom: token.denom.clone(),
                             amount: Uint128::from(4_000_000_000_000u128).to_string(),
                         },
                         base::v1beta1::Coin {
@@ -142,16 +169,6 @@ pub fn execute(
                     type_url: "/liquidity.v1beta1.MsgCreatePool".to_string(),
                     value: Binary::from(create_pool_data).into(),
                 });
-                let token_to_send = Coin {
-                    denom: "uhuahua".to_string(),
-                    amount: reserve
-                        .amount
-                        .saturating_sub(Uint128::from(20_000_000_000_000u128)),
-                };
-                let send_msg = BankMsg::Send {
-                    to_address: config.reserve_collector_address.to_string(), // Adresse de l'utilisateur
-                    amount: vec![token_to_send.clone()],
-                };
 
                 token.completed = true;
                 TOKENS.save(deps.storage, subdenom.clone(), &token)?;
@@ -160,7 +177,7 @@ pub fn execute(
                     .add_attribute("action", "create_denom_and_stakedrop")
                     //  .add_attribute("token factory params ", format!("{:?}",resp.params))
                     .add_message(create_stakedrop)
-                    .add_message(send_msg)
+                    .add_message(create_native_stakedrop)
                     .add_message(create_pool);
                 Ok(resp)
             }
@@ -178,6 +195,11 @@ pub fn query(deps: Deps, _env: Env, _msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetTokensWithPagination { start_after, limit } => {
             let response = query_tokens_with_pagination(deps, start_after, limit)?;
             cosmwasm_std::to_json_binary(&response)
+        }
+        QueryMsg::Config {} => {
+            let config = CONFIG.load(deps.storage)?;
+            let response = ConfigResponse { config };
+            to_json_binary(&response)
         }
     }
 }

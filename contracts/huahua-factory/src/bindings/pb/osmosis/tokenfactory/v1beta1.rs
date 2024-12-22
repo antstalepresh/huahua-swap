@@ -74,11 +74,11 @@ pub struct MsgCreateStakeDrop {
     #[prost(string, tag = "1")]
     pub sender: ::prost::alloc::string::String,
     /// amount to stakedrop
-    #[prost(message, optional, tag = "3")]
+    #[prost(message, optional, tag = "2")]
     pub amount: ::core::option::Option<super::super::super::cosmos::base::v1beta1::Coin>,
-    #[prost(int64, tag = "4")]
+    #[prost(int64, tag = "3")]
     pub start_block: i64,
-    #[prost(int64, tag = "5")]
+    #[prost(int64, tag = "4")]
     pub end_block: i64,
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]

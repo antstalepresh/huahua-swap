@@ -13,7 +13,7 @@ pub struct MsgCreatePool {
     #[prost(uint32, tag = "2")]
     pub pool_type_id: u32,
     /// reserve coin pair of the pool to deposit.
-    #[prost(message, repeated, tag = "4")]
+    #[prost(message, repeated, tag = "3")]
     pub deposit_coins: ::prost::alloc::vec::Vec<
         super::super::cosmos::base::v1beta1::Coin,
     >,

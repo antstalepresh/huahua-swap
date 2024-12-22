@@ -198,17 +198,22 @@ fn execute_buy(
                         subdenom: config.subdenom.to_string(),
                     },
                 };
-                let huahua_balance: Coin =
-                    deps.querier.query(&QueryRequest::Bank(BankQuery::Balance {
-                        address: env.contract.address.to_string(),
-                        denom: "uhuahua".to_string(),
-                    }))?;
-                let execute_bonding_curve_msg = WasmMsg::Execute {
+
+                let huahua_balance: Coin = deps
+                    .querier
+                    .query_balance(env.contract.address, "uhuahua".to_string())?;
+                let execute_complete_bonding_curve_msg = WasmMsg::Execute {
                     contract_addr: config.manager_contract.to_string(),
                     msg: to_json_binary(&complete_msg)?,
-                    funds: vec![Coin::new(huahua_balance.amount, "uhuahua".to_string())],
+                    funds: vec![Coin::new(
+                        huahua_balance
+                            .amount
+                            .saturating_sub(bought.rest_native_amount)
+                            .saturating_sub(fee_amount),
+                        "uhuahua".to_string(),
+                    )],
                 };
-                response = response.add_message(execute_bonding_curve_msg);
+                response = response.add_message(execute_complete_bonding_curve_msg);
             }
             CONFIG.save(deps.storage, &config)?;
 

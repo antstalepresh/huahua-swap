@@ -1,2 +1,11 @@
 contracts/huahua-factory/artifacts/huahua_factory.wasm
 contracts/huahua-factory/artifacts/checksums.txt
+instantiate_huahua_factory_res.json
+instantiate_huahua_factory_tx.json
+store_bonding_curve_res.json
+store_bonding_curve_tx.json
+store_huahua_factory_res.json
+store_huahua_factory_tx.json
+artifacts/bonding_curve.wasm
+artifacts/huahua_factory.wasm
+contracts/bonding-curve/artifacts/checksums.txt

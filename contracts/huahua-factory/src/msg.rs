@@ -1,6 +1,6 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 
-use crate::state::Token;
+use crate::state::{Config, Token};
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -31,11 +31,18 @@ pub enum QueryMsg {
         start_after: Option<String>,
         limit: Option<u32>,
     },
+    #[returns(ConfigResponse)]
+    Config {},
 }
 
 #[cw_serde]
 pub struct TokenInfoResponse {
     pub info: Token,
+}
+
+#[cw_serde]
+pub struct ConfigResponse {
+    pub config: Config,
 }
 
 #[cw_serde]

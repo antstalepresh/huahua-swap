@@ -32,19 +32,20 @@ schema:
 	cd contracts/bonding-curve && cargo run --bin schema
 	cd contracts/huahua-factory && cargo run --bin schema
 
-
 	cosmwasm-ts-codegen generate \
-          --plugin client \
           --schema ./contracts/bonding-curve/schema \
           --out ./ts_types \
           --name BondingCurve \
-          --no-bundle
+          --no-bundle \
+
+
 	cosmwasm-ts-codegen generate \
-          --plugin client \
           --schema ./contracts/huahua-factory/schema \
           --out ./ts_types \
           --name HuahuaFactory \
-          --no-bundle
+          --no-bundle \
+
+
 	
 # Nettoyage des caches Docker
 clean:

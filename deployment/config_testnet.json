@@ -1,0 +1,8 @@
+{
+    "chain_id": "woofnet-5",
+    "rpc_node": "http://testnet.chihuahua.wtf:26557",
+    "api_node": "http://testnet.chihuahua.wtf:8885",
+    "tx_sender_wallet": "victor",
+    "tx_sender_address": "chihuahua1jhcn7kpyu9zwfpw46w8mkztzlf2r345qq9kt9f",
+    "fee_collector_address": "chihuahua17xpfvakm2amg962yls6f84z3kell8c5lnvww2l"
+}

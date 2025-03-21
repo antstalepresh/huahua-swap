@@ -11,6 +11,7 @@ pub struct Config {
 }
 #[cw_serde]
 pub struct CurrentCreation {
+    pub name: String,
     pub subdenom: String,
     pub denom: String,
     pub description: String,
@@ -20,6 +21,7 @@ pub struct CurrentCreation {
 
 #[cw_serde]
 pub struct Token {
+    pub name: String,
     pub subdenom: String,
     pub denom: String,
     pub description: String,

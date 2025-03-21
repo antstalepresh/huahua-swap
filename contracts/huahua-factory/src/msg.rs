@@ -12,6 +12,7 @@ pub struct InstantiateMsg {
 #[cw_serde]
 pub enum ExecuteMsg {
     CreateToken {
+        name: String,
         subdenom: String,
         description: String,
         url: String,

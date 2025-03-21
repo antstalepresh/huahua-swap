@@ -9,3 +9,4 @@ store_huahua_factory_tx.json
 artifacts/bonding_curve.wasm
 artifacts/huahua_factory.wasm
 contracts/bonding-curve/artifacts/checksums.txt
+contracts/bonding-curve/artifacts/bonding_curve.wasm

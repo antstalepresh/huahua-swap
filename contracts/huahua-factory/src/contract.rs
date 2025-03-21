@@ -67,10 +67,11 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::CreateToken {
+            name,
             subdenom,
             description,
             url,
-        } => create_token(deps, env, subdenom, description, url, info.sender),
+        } => create_token(deps, env, name, subdenom, description, url, info.sender),
         ExecuteMsg::CompleteBondingCurve { subdenom } => {
             let mut token = TOKENS.load(deps.storage, subdenom.clone())?;
             if token.completed {
@@ -230,6 +231,7 @@ pub fn query_tokens_with_pagination(
 fn create_token(
     deps: DepsMut,
     env: Env,
+    name: String,
     subdenom: String,
     description: String,
     url: String,
@@ -252,6 +254,7 @@ fn create_token(
         .add_submessage(sub_msg);
 
     let current_creation = CurrentCreation {
+        name: name.clone(),
         subdenom: subdenom.clone(),
         description: description.clone(),
         url: url.clone(),
@@ -345,6 +348,7 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
                                 },
                             )?;
                         let token = Token {
+                            name: current_creation.name.clone(),
                             subdenom: current_creation.subdenom.clone(),
                             denom: current_creation.denom.clone(),
                             description: current_creation.description.clone(),
@@ -433,17 +437,12 @@ fn create_set_denom_metadata_msg(
     let set_denom_msg = MsgSetDenomMetadata {
         sender: contract_address,
         metadata: Some(Metadata {
-            description: "Subdenom".to_string(),
+            description: current_creation.description.clone(),
             denom_units: vec![
                 DenomUnit {
                     denom: new_token_denom.clone(),
                     exponent: 0,
-                    aliases: vec![["micro", &current_creation.subdenom.clone()].concat()],
-                },
-                DenomUnit {
-                    denom: ["m", &current_creation.subdenom.clone()].concat(),
-                    exponent: 3,
-                    aliases: vec![["milli", &current_creation.subdenom.clone()].concat()],
+                    aliases: vec![["u", &current_creation.subdenom.clone()].concat()],
                 },
                 DenomUnit {
                     denom: current_creation.subdenom.clone(),
@@ -453,7 +452,7 @@ fn create_set_denom_metadata_msg(
             ],
             base: new_token_denom.clone(),
             display: current_creation.subdenom.clone(),
-            name: current_creation.subdenom.clone(),
+            name: current_creation.name.clone(),
             symbol: current_creation.subdenom.clone(),
             uri: current_creation.url.clone(),
             uri_hash: "".to_string(),

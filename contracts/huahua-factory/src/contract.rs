@@ -359,6 +359,7 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
                             ),
                             completed: false,
                             pool_id: 0,
+                            created_at: env.block.time.seconds(),
                         };
                         TOKENS.save(deps.storage, current_creation.subdenom.clone(), &token)?;
                         return Ok(Response::new());

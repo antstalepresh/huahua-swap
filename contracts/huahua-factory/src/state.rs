@@ -30,6 +30,7 @@ pub struct Token {
     pub bonding_curve_address: Addr,
     pub completed: bool,
     pub pool_id: u64,
+    pub created_at: u64,
 }
 
 // Crée un singleton pour stocker la configuration

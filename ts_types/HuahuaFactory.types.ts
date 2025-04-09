@@ -12,6 +12,7 @@ export interface InstantiateMsg {
 export type ExecuteMsg = {
   create_token: {
     description: string;
+    logo: string;
     name: string;
     subdenom: string;
     url: string;

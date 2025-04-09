@@ -13,11 +13,13 @@ export interface HuahuaFactoryMsg {
   sender: string;
   createToken: ({
     description,
+    logo,
     name,
     subdenom,
     url
   }: {
     description: string;
+    logo: string;
     name: string;
     subdenom: string;
     url: string;
@@ -45,11 +47,13 @@ export class HuahuaFactoryMsgComposer implements HuahuaFactoryMsg {
   }
   createToken = ({
     description,
+    logo,
     name,
     subdenom,
     url
   }: {
     description: string;
+    logo: string;
     name: string;
     subdenom: string;
     url: string;
@@ -62,6 +66,7 @@ export class HuahuaFactoryMsgComposer implements HuahuaFactoryMsg {
         msg: toUtf8(JSON.stringify({
           create_token: {
             description,
+            logo,
             name,
             subdenom,
             url

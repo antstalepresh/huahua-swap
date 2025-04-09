@@ -69,11 +69,13 @@ export interface HuahuaFactoryInterface extends HuahuaFactoryReadOnlyInterface {
   sender: string;
   createToken: ({
     description,
+    logo,
     name,
     subdenom,
     url
   }: {
     description: string;
+    logo: string;
     name: string;
     subdenom: string;
     url: string;
@@ -104,11 +106,13 @@ export class HuahuaFactoryClient extends HuahuaFactoryQueryClient implements Hua
   }
   createToken = async ({
     description,
+    logo,
     name,
     subdenom,
     url
   }: {
     description: string;
+    logo: string;
     name: string;
     subdenom: string;
     url: string;
@@ -116,6 +120,7 @@ export class HuahuaFactoryClient extends HuahuaFactoryQueryClient implements Hua
     return await this.client.execute(this.sender, this.contractAddress, {
       create_token: {
         description,
+        logo,
         name,
         subdenom,
         url

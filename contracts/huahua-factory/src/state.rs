@@ -16,6 +16,7 @@ pub struct CurrentCreation {
     pub denom: String,
     pub description: String,
     pub url: String,
+    pub logo: String,
     pub creator: Addr,
 }
 

@@ -6,6 +6,8 @@ use cosmwasm_std::{
 };
 use cw_storage_plus::Bound;
 use prost::Message;
+use sha2::{Digest, Sha256};
+use hex;
 // use cw2::set_contract_version;
 
 use crate::bindings::msg::MsgInstantiateContractResponse;
@@ -71,7 +73,8 @@ pub fn execute(
             subdenom,
             description,
             url,
-        } => create_token(deps, env, name, subdenom, description, url, info.sender),
+            logo,
+        } => create_token(deps, env, name, subdenom, description, url, logo, info.sender),
         ExecuteMsg::CompleteBondingCurve { subdenom } => {
             let mut token = TOKENS.load(deps.storage, subdenom.clone())?;
             if token.completed {
@@ -235,6 +238,7 @@ fn create_token(
     subdenom: String,
     description: String,
     url: String,
+    logo: String,
     creator: Addr,
 ) -> Result<Response, ContractError> {
     let create_denom_msg = MsgCreateDenom {
@@ -258,6 +262,7 @@ fn create_token(
         subdenom: subdenom.clone(),
         description: description.clone(),
         url: url.clone(),
+        logo: logo.clone(),
         creator: creator.clone(),
         denom: "".to_string(),
     };
@@ -435,6 +440,15 @@ fn create_set_denom_metadata_msg(
     new_token_denom: String,
     contract_address: String,
 ) -> CosmosMsg {
+    // Calculate URI hash using SHA-256
+    let uri_hash = if !current_creation.logo.is_empty() {
+        let mut hasher = Sha256::new();
+        hasher.update(current_creation.logo.as_bytes());
+        hex::encode(hasher.finalize())
+    } else {
+        "".to_string()
+    };
+
     let set_denom_msg = MsgSetDenomMetadata {
         sender: contract_address,
         metadata: Some(Metadata {
@@ -455,8 +469,8 @@ fn create_set_denom_metadata_msg(
             display: current_creation.subdenom.clone(),
             name: current_creation.name.clone(),
             symbol: current_creation.subdenom.clone(),
-            uri: current_creation.url.clone(),
-            uri_hash: "".to_string(),
+            uri: current_creation.logo.clone(),
+            uri_hash,
         }),
     };
 

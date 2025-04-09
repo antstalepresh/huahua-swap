@@ -17,6 +17,7 @@ pub enum ExecuteMsg {
         subdenom: String,
         description: String,
         url: String,
+        logo: String,
     },
     CompleteBondingCurve {
         subdenom: String,

@@ -492,13 +492,10 @@ fn create_pool(
         return Err(ContractError::InvalidFunds {});
     }
 
-    // Check if all factory tokens are in bonding curve status
-    let mut all_factory_tokens_in_bonding_curve = true;
-    let mut has_completed_or_non_factory = false;
-
+    // Check if any factory token is still in bonding curve status
     for coin in coins.iter() {
         if coin.denom.starts_with("factory/") {
-            // Only check bonding curve status for factory tokens
+            // Extract subdenom from the full denom
             let subdenom = coin
                 .denom
                 .strip_prefix("factory/")
@@ -508,32 +505,30 @@ fn create_pool(
                 })?;
 
             // Check token status in our registry
-            if let Ok(token) = TOKENS.load(deps.storage, subdenom.to_string()) {
-                if token.completed {
-                    has_completed_or_non_factory = true;
-                    all_factory_tokens_in_bonding_curve = false;
+            match TOKENS.load(deps.storage, subdenom.to_string()) {
+                Ok(token) => {
+                    if !token.completed {
+                        return Err(ContractError::CustomError {
+                            msg: format!(
+                                "Token {} is still in bonding curve status",
+                                coin.denom
+                            ),
+                        });
+                    }
                 }
-            } else {
-                // Non-registered factory tokens are considered completed
-                has_completed_or_non_factory = true;
-                all_factory_tokens_in_bonding_curve = false;
+                Err(_) => {
+                    return Err(ContractError::CustomError {
+                        msg: format!(
+                            "Factory token not found in registry: {}",
+                            coin.denom
+                        ),
+                    });
+                }
             }
-        } else {
-            // Non-factory tokens are considered completed
-            has_completed_or_non_factory = true;
-            all_factory_tokens_in_bonding_curve = false;
         }
     }
 
-    // Prevent pool creation if all factory tokens are in bonding curve status
-    // and there are no non-factory tokens
-    if all_factory_tokens_in_bonding_curve && !has_completed_or_non_factory {
-        return Err(ContractError::CustomError {
-            msg: "Cannot create pool when all factory tokens are in bonding curve status".to_string(),
-        });
-    }
-
-    // Create the pool since we have at least one completed token or non-factory token
+    // Create the pool since all factory tokens are completed
     let create_pool_msg = MsgCreatePool {
         pool_creator_address: env.contract.address.to_string(),
         pool_type_id: 1,

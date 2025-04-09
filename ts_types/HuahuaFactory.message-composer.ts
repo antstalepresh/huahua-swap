@@ -4,11 +4,10 @@
 * and run the @cosmwasm/ts-codegen generate command to regenerate this file.
 */
 
-import { Coin } from "@cosmjs/amino";
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { InstantiateMsg, ExecuteMsg, QueryMsg, Addr, ConfigResponse, Config, PaginatedTokensResponse, Token, TokenInfoResponse } from "./HuahuaFactory.types";
+import { InstantiateMsg, ExecuteMsg, Uint128, Coin, QueryMsg, Addr, ConfigResponse, Config, PaginatedTokensResponse, Token, TokenInfoResponse } from "./HuahuaFactory.types";
 export interface HuahuaFactoryMsg {
   contractAddress: string;
   sender: string;
@@ -28,6 +27,11 @@ export interface HuahuaFactoryMsg {
   }: {
     subdenom: string;
   }, funds_?: Coin[]) => MsgExecuteContractEncodeObject;
+  createPool: ({
+    coins
+  }: {
+    coins: Coin[];
+  }, funds_?: Coin[]) => MsgExecuteContractEncodeObject;
 }
 export class HuahuaFactoryMsgComposer implements HuahuaFactoryMsg {
   sender: string;
@@ -37,6 +41,7 @@ export class HuahuaFactoryMsgComposer implements HuahuaFactoryMsg {
     this.contractAddress = contractAddress;
     this.createToken = this.createToken.bind(this);
     this.completeBondingCurve = this.completeBondingCurve.bind(this);
+    this.createPool = this.createPool.bind(this);
   }
   createToken = ({
     description,
@@ -79,6 +84,25 @@ export class HuahuaFactoryMsgComposer implements HuahuaFactoryMsg {
         msg: toUtf8(JSON.stringify({
           complete_bonding_curve: {
             subdenom
+          }
+        })),
+        funds: funds_
+      })
+    };
+  };
+  createPool = ({
+    coins
+  }: {
+    coins: Coin[];
+  }, funds_?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          create_pool: {
+            coins
           }
         })),
         funds: funds_

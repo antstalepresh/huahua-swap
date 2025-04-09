@@ -20,7 +20,16 @@ export type ExecuteMsg = {
   complete_bonding_curve: {
     subdenom: string;
   };
+} | {
+  create_pool: {
+    coins: Coin[];
+  };
 };
+export type Uint128 = string;
+export interface Coin {
+  amount: Uint128;
+  denom: string;
+}
 export type QueryMsg = {
   token_info: {
     subdenom: string;
@@ -49,6 +58,7 @@ export interface PaginatedTokensResponse {
 export interface Token {
   bonding_curve_address: Addr;
   completed: boolean;
+  created_at: number;
   creator: Addr;
   denom: string;
   description: string;

@@ -1,4 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
+use cosmwasm_std::{Coin};
 
 use crate::state::{Config, Token};
 
@@ -19,6 +20,9 @@ pub enum ExecuteMsg {
     },
     CompleteBondingCurve {
         subdenom: String,
+    },
+    CreatePool {
+        coins: Vec<Coin>,
     },
 }
 

@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_json_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Reply,
+    to_json_binary, Addr, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Reply,
     Response, StdResult, SubMsg, SubMsgResult, Uint128, WasmMsg,
 };
 use cw_storage_plus::Bound;
@@ -93,7 +93,6 @@ pub fn execute(
                     //amount should be 60M but at least 20M
                     return Err(ContractError::InvalidFunds {});
                 }
-                let config = CONFIG.load(deps.storage)?;
                 if token.completed {
                     return Err(ContractError::CustomError {
                         msg: "Token already completed".to_string(),
@@ -183,6 +182,7 @@ pub fn execute(
                 Ok(resp)
             }
         }
+        ExecuteMsg::CreatePool { coins } => create_pool(deps, env, info, coins),
     }
 }
 
@@ -466,6 +466,100 @@ fn create_set_denom_metadata_msg(
         type_url: "/osmosis.tokenfactory.v1beta1.MsgSetDenomMetadata".to_string(),
         value: Binary::from(set_metadata_data).into(),
     })
+}
+
+fn create_pool(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    coins: Vec<Coin>,
+) -> Result<Response, ContractError> {
+    // Validate that we have exactly 2 coins for the pool
+    if coins.len() != 2 {
+        return Err(ContractError::CustomError {
+            msg: "Pool must be created with exactly 2 tokens".to_string(),
+        });
+    }
+
+    // Verify sent funds match the specified amounts
+    let mut provided_funds = info.funds;
+    provided_funds.sort_by(|a, b| a.denom.cmp(&b.denom));
+
+    let mut requested_funds = coins.clone();
+    requested_funds.sort_by(|a, b| a.denom.cmp(&b.denom));
+
+    if provided_funds != requested_funds {
+        return Err(ContractError::InvalidFunds {});
+    }
+
+    // Check if all factory tokens are in bonding curve status
+    let mut all_factory_tokens_in_bonding_curve = true;
+    let mut has_completed_or_non_factory = false;
+
+    for coin in coins.iter() {
+        if coin.denom.starts_with("factory/") {
+            // Only check bonding curve status for factory tokens
+            let subdenom = coin
+                .denom
+                .strip_prefix("factory/")
+                .and_then(|s| s.split('/').nth(1))
+                .ok_or_else(|| ContractError::CustomError {
+                    msg: format!("Invalid factory token format: {}", coin.denom),
+                })?;
+
+            // Check token status in our registry
+            if let Ok(token) = TOKENS.load(deps.storage, subdenom.to_string()) {
+                if token.completed {
+                    has_completed_or_non_factory = true;
+                    all_factory_tokens_in_bonding_curve = false;
+                }
+            } else {
+                // Non-registered factory tokens are considered completed
+                has_completed_or_non_factory = true;
+                all_factory_tokens_in_bonding_curve = false;
+            }
+        } else {
+            // Non-factory tokens are considered completed
+            has_completed_or_non_factory = true;
+            all_factory_tokens_in_bonding_curve = false;
+        }
+    }
+
+    // Prevent pool creation if all factory tokens are in bonding curve status
+    // and there are no non-factory tokens
+    if all_factory_tokens_in_bonding_curve && !has_completed_or_non_factory {
+        return Err(ContractError::CustomError {
+            msg: "Cannot create pool when all factory tokens are in bonding curve status".to_string(),
+        });
+    }
+
+    // Create the pool since we have at least one completed token or non-factory token
+    let create_pool_msg = MsgCreatePool {
+        pool_creator_address: env.contract.address.to_string(),
+        pool_type_id: 1,
+        deposit_coins: coins
+            .iter()
+            .map(|coin| base::v1beta1::Coin {
+                denom: coin.denom.clone(),
+                amount: coin.amount.to_string(),
+            })
+            .collect(),
+    };
+
+    let mut create_pool_data = Vec::new();
+    create_pool_msg.encode(&mut create_pool_data).map_err(|err| ContractError::CustomError {
+        msg: format!("Failed to encode pool creation message: {}", err),
+    })?;
+
+    let create_pool: CosmosMsg = CosmosMsg::Any(cosmwasm_std::AnyMsg {
+        type_url: "/liquidity.v1beta1.MsgCreatePool".to_string(),
+        value: Binary::from(create_pool_data).into(),
+    });
+
+    Ok(Response::new()
+        .add_message(create_pool)
+        .add_attribute("action", "create_pool")
+        .add_attribute("coins", format!("{:?}", coins)))
 }
 
 #[cfg(test)]

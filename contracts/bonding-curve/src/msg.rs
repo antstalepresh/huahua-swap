@@ -21,6 +21,10 @@ pub enum QueryMsg {
     TokenPrice {},
     #[returns(CurveState)]
     CurveState {},
+    #[returns(Coin)]
+    CalculateBuyAmount { token_amount: Coin },
+    #[returns(Coin)]
+    CalculateSellAmount { token_amount: Coin },
 }
 
 #[cw_serde]

@@ -189,7 +189,7 @@ impl BondingCurve {
         )
     }
 
-    pub fn buy(&mut self, reserve_amount: Uint128) -> Result<BoughtEvent, String> {
+    fn calculate_buy_tokens(&self, reserve_amount: Uint128) -> Result<(Uint128, Uint128), String> {
         if self.completed {
             return Err("Bonding curve is completed".to_string());
         }
@@ -223,21 +223,17 @@ impl BondingCurve {
             }
         }
 
-        self.reserve_native_amount += reserve_amount - remaining_reserve;
-        self.current_supply = self.current_supply + Uint128::from(total_tokens);
-        if self.current_supply >= self.maximum_supply {
-            self.completed = true;
-        }
-        Ok(BoughtEvent::new(
-            Uint128::from(total_tokens),
-            remaining_reserve,
-        ))
+        Ok((Uint128::from(total_tokens), remaining_reserve))
     }
 
-    pub fn sell(&mut self, token_amount: Uint128) -> Result<SoldEvent, String> {
+    fn calculate_sell_tokens(&self, token_amount: Uint128) -> Result<Uint128, String> {
         if self.completed {
             return Err("Bonding curve is completed".to_string());
         }
+        if token_amount > self.current_supply {
+            return Err("Not enough tokens to sell".to_string());
+        }
+
         let mut remaining_tokens = token_amount.u128();
         let mut total_reserve = Uint128::zero();
 
@@ -271,21 +267,47 @@ impl BondingCurve {
             }
         }
 
-        // Mettre à jour les réserves et la supply
+        // if remaining_tokens > 0 {
+        //     return Err("Not enough tokens available in the bonding curve".to_string());
+        // }
 
-        self.current_supply -= Uint128::from(token_amount.u128() - remaining_tokens);
+        Ok(total_reserve)
+    }
+
+    pub fn buy(&mut self, reserve_amount: Uint128) -> Result<BoughtEvent, String> {
+        let (tokens_bought, remaining_reserve) = self.calculate_buy_tokens(reserve_amount)?;
+        
+        self.reserve_native_amount += reserve_amount - remaining_reserve;
+        self.current_supply = self.current_supply + tokens_bought;
+        if self.current_supply >= self.maximum_supply {
+            self.completed = true;
+        }
+        
+        Ok(BoughtEvent::new(tokens_bought, remaining_reserve))
+    }
+
+    pub fn sell(&mut self, token_amount: Uint128) -> Result<SoldEvent, String> {
+        let total_reserve = self.calculate_sell_tokens(token_amount)?;
+
+        // Mettre à jour les réserves et la supply
+        self.current_supply -= token_amount;
         if self.current_supply <= Uint128::zero() {
             self.current_supply = Uint128::zero();
-            total_reserve = self.reserve_native_amount;
             self.reserve_native_amount = Uint128::zero();
+            Ok(SoldEvent::new(total_reserve, Uint128::zero()))
         } else {
             self.reserve_native_amount -= total_reserve;
+            Ok(SoldEvent::new(total_reserve, Uint128::zero()))
         }
+    }
 
-        Ok(SoldEvent::new(
-            total_reserve,
-            Uint128::from(remaining_tokens),
-        ))
+    pub fn calculate_buy_amount(&self, reserve_amount: Uint128) -> Result<Uint128, String> {
+        let (tokens_bought, _) = self.calculate_buy_tokens(reserve_amount)?;
+        Ok(tokens_bought)
+    }
+
+    pub fn calculate_sell_amount(&self, token_amount: Uint128) -> Result<Uint128, String> {
+        self.calculate_sell_tokens(token_amount)
     }
 
     pub fn current_price(&self) -> Uint128 {

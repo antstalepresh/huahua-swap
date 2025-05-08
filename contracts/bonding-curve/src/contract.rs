@@ -2,7 +2,7 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_json_binary, Addr, BankMsg, BankQuery, Binary, Coin, Decimal, Deps, DepsMut, Env,
-    MessageInfo, QueryRequest, Response, StdResult, Uint128, WasmMsg,
+    MessageInfo, QueryRequest, Response, StdError, StdResult, Uint128, WasmMsg,
 };
 // use cw2::set_contract_version;
 
@@ -127,6 +127,51 @@ pub fn query(_deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
                 completed: config.completed,
                 price: price,
             })
+        }
+        QueryMsg::CalculateBuyAmount { token_amount } => {
+            let config = CONFIG.load(_deps.storage)?;
+            if token_amount.denom != "uhuahua" {
+                return Err(StdError::generic_err("Invalid input token denom"));
+            }
+            
+            let bonding_curve = BondingCurve::exp_bonding_curve(
+                Uint128::from(config.token_sold),
+                Uint128::from(config.reserve_token_amount),
+            );
+            
+            let fee_amount = calculate_fee(config.clone(), token_amount.amount);
+            let amount = token_amount.amount.saturating_sub(fee_amount);
+            
+            match bonding_curve.calculate_buy_amount(amount) {
+                Ok(tokens_bought) => {
+                    let output = Coin::new(tokens_bought.u128(), config.token_denom);
+                    to_json_binary(&output)
+                }
+                Err(e) => Err(StdError::generic_err(e)),
+            }
+        }
+        QueryMsg::CalculateSellAmount { token_amount } => {
+            let config = CONFIG.load(_deps.storage)?;
+            if token_amount.denom != config.token_denom {
+                return Err(StdError::generic_err("Invalid token denom"));
+            }
+            
+            let bonding_curve = BondingCurve::exp_bonding_curve(
+                Uint128::from(config.token_sold),
+                Uint128::from(config.reserve_token_amount),
+            );
+            
+            match bonding_curve.calculate_sell_amount(token_amount.amount) {
+                Ok(base_amount) => {
+                    // Calculate the fee amount that will be deducted
+                    let fee_amount = calculate_fee(config.clone(), base_amount);
+                    let final_amount = base_amount.saturating_sub(fee_amount);
+                    
+                    let output = Coin::new(final_amount.u128(), "uhuahua".to_string());
+                    to_json_binary(&output)
+                }
+                Err(e) => Err(StdError::generic_err(e)),
+            }
         }
     }
 }

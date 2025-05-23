@@ -18,15 +18,23 @@ export type QueryMsg = {
   token_price: {};
 } | {
   curve_state: {};
+} | {
+  calculate_buy_amount: {
+    token_amount: Coin;
+  };
+} | {
+  calculate_sell_amount: {
+    token_amount: Coin;
+  };
 };
 export type Uint128 = string;
+export interface Coin {
+  amount: Uint128;
+  denom: string;
+}
 export interface CurveState {
   collected: Coin;
   completed: boolean;
   price: Coin;
   sold: Coin;
-}
-export interface Coin {
-  amount: Uint128;
-  denom: string;
 }

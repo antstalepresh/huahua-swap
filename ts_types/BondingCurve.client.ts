@@ -6,11 +6,21 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { InstantiateMsg, ExecuteMsg, QueryMsg, Uint128, CurveState, Coin } from "./BondingCurve.types";
+import { InstantiateMsg, ExecuteMsg, QueryMsg, Uint128, Coin, CurveState } from "./BondingCurve.types";
 export interface BondingCurveReadOnlyInterface {
   contractAddress: string;
   tokenPrice: () => Promise<Coin>;
   curveState: () => Promise<CurveState>;
+  calculateBuyAmount: ({
+    tokenAmount
+  }: {
+    tokenAmount: Coin;
+  }) => Promise<Coin>;
+  calculateSellAmount: ({
+    tokenAmount
+  }: {
+    tokenAmount: Coin;
+  }) => Promise<Coin>;
 }
 export class BondingCurveQueryClient implements BondingCurveReadOnlyInterface {
   client: CosmWasmClient;
@@ -20,6 +30,8 @@ export class BondingCurveQueryClient implements BondingCurveReadOnlyInterface {
     this.contractAddress = contractAddress;
     this.tokenPrice = this.tokenPrice.bind(this);
     this.curveState = this.curveState.bind(this);
+    this.calculateBuyAmount = this.calculateBuyAmount.bind(this);
+    this.calculateSellAmount = this.calculateSellAmount.bind(this);
   }
   tokenPrice = async (): Promise<Coin> => {
     return this.client.queryContractSmart(this.contractAddress, {
@@ -29,6 +41,28 @@ export class BondingCurveQueryClient implements BondingCurveReadOnlyInterface {
   curveState = async (): Promise<CurveState> => {
     return this.client.queryContractSmart(this.contractAddress, {
       curve_state: {}
+    });
+  };
+  calculateBuyAmount = async ({
+    tokenAmount
+  }: {
+    tokenAmount: Coin;
+  }): Promise<Coin> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      calculate_buy_amount: {
+        token_amount: tokenAmount
+      }
+    });
+  };
+  calculateSellAmount = async ({
+    tokenAmount
+  }: {
+    tokenAmount: Coin;
+  }): Promise<Coin> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      calculate_sell_amount: {
+        token_amount: tokenAmount
+      }
     });
   };
 }

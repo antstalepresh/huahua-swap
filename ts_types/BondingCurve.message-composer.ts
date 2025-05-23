@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { InstantiateMsg, ExecuteMsg, QueryMsg, Uint128, CurveState, Coin } from "./BondingCurve.types";
+import { InstantiateMsg, ExecuteMsg, QueryMsg, Uint128, Coin, CurveState } from "./BondingCurve.types";
 export interface BondingCurveMsg {
   contractAddress: string;
   sender: string;

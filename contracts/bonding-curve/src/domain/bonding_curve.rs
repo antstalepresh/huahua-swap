@@ -312,6 +312,9 @@ impl BondingCurve {
 
     pub fn current_price(&self) -> Uint128 {
         let current_tier = (self.current_supply.u128() / self.tokens_per_tier) as usize;
+        if current_tier >= self.tier_prices.len() {
+            return self.tier_prices[self.tier_prices.len() - 1];
+        }
         self.tier_prices[current_tier]
     }
 }

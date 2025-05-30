@@ -1,8 +1,8 @@
 {
     "chain_id": "woofnet-5",
-    "rpc_node": "http://testnet.chihuahua.wtf:26557",
-    "api_node": "http://testnet.chihuahua.wtf:8885",
-    "tx_sender_wallet": "victor",
-    "tx_sender_address": "chihuahua1jhcn7kpyu9zwfpw46w8mkztzlf2r345qq9kt9f",
-    "fee_collector_address": "chihuahua17xpfvakm2amg962yls6f84z3kell8c5lnvww2l"
+    "rpc_node": "https://testnet-rpc.chihuahua.wtf",
+    "api_node": "https://testnet-api.chihuahua.wtf",
+    "tx_sender_wallet": "hua1",
+    "tx_sender_address": "chihuahua1hj5fveer5cjtn4wd6wstzugjfdxzl0xp9eludp",
+    "fee_collector_address": "chihuahua15p2wsumxdhgsq5taq2aqxz6q3kj4t6eqdd8tqj"
 }

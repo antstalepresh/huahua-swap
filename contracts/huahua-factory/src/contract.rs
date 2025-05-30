@@ -133,7 +133,7 @@ pub fn execute(
                         denom: "uhuahua".to_string(),
                         amount: reserve
                             .amount
-                            .saturating_sub(Uint128::from(20_000_000_000_000u128))
+                            .saturating_sub(Uint128::from(40_600_000_000_000u128))
                             .to_string(),
                     }),
                     start_block: env.block.height as i64 + 2,
@@ -157,11 +157,11 @@ pub fn execute(
                     deposit_coins: vec![
                         base::v1beta1::Coin {
                             denom: token.denom.clone(),
-                            amount: Uint128::from(4_000_000_000_000u128).to_string(),
+                            amount: Uint128::from(1_503_703_703_703u128).to_string(),
                         },
                         base::v1beta1::Coin {
                             denom: "uhuahua".to_string(),
-                            amount: Uint128::from(20_000_000_000_000u128).to_string(),
+                            amount: Uint128::from(40_600_000_000_000u128).to_string(),
                         },
                     ],
                 };
@@ -391,7 +391,7 @@ fn create_mint_msg(new_token_denom: String, contract_address: String) -> CosmosM
         sender: contract_address.clone(),
         amount: Some(base::v1beta1::Coin {
             denom: new_token_denom.clone(),
-            amount: Uint128::from(16_000_000_000_000u128).to_string(),
+            amount: Uint128::from(18_503_703_703_703u128).to_string(),
         }),
         mint_to_address: contract_address.clone(),
     };

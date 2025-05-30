@@ -221,6 +221,7 @@ fn execute_buy(
                 .add_attribute("amount", token_to_send.amount.to_string())
                 .add_attribute("denom", token_to_send.denom);
 
+            config.reserve_token_amount += amount.u128();
             if bought.rest_native_amount > Uint128::zero() {
                 //return rest to user
                 let send_msg = BankMsg::Send {
@@ -231,10 +232,10 @@ fn execute_buy(
                     }],
                 };
                 response = response.add_message(send_msg);
+                config.reserve_token_amount -= bought.rest_native_amount.u128();
             }
 
             config.token_sold += bought.tokens_bought.u128();
-            config.reserve_token_amount += amount.u128();
 
             if config.token_sold == 12_000_000_000_000u128 {
                 config.completed = true;

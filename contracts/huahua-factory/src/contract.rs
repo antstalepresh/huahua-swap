@@ -92,8 +92,8 @@ pub fn execute(
                 if reserve.denom != "uhuahua" {
                     return Err(ContractError::InvalidFunds {});
                 }
-                if reserve.amount <= Uint128::from(20_000_000_000_000u128) {
-                    //amount should be 60M but at least 20M
+                if reserve.amount <= Uint128::from(60_000_000_000_000u128) {
+                    //amount should be 75M but at least 60M
                     return Err(ContractError::InvalidFunds {});
                 }
                 if token.completed {
@@ -133,7 +133,7 @@ pub fn execute(
                         denom: "uhuahua".to_string(),
                         amount: reserve
                             .amount
-                            .saturating_sub(Uint128::from(40_600_000_000_000u128))
+                            .saturating_sub(Uint128::from(50_000_000_000_000u128))
                             .to_string(),
                     }),
                     start_block: env.block.height as i64 + 2,
@@ -157,11 +157,11 @@ pub fn execute(
                     deposit_coins: vec![
                         base::v1beta1::Coin {
                             denom: token.denom.clone(),
-                            amount: Uint128::from(1_503_703_703_703u128).to_string(),
+                            amount: Uint128::from(25_000_000_000_000u128).to_string(),
                         },
                         base::v1beta1::Coin {
                             denom: "uhuahua".to_string(),
-                            amount: Uint128::from(40_600_000_000_000u128).to_string(),
+                            amount: Uint128::from(50_000_000_000_000u128).to_string(),
                         },
                     ],
                 };
@@ -391,7 +391,7 @@ fn create_mint_msg(new_token_denom: String, contract_address: String) -> CosmosM
         sender: contract_address.clone(),
         amount: Some(base::v1beta1::Coin {
             denom: new_token_denom.clone(),
-            amount: Uint128::from(18_503_703_703_703u128).to_string(),
+            amount: Uint128::from(100_000_000_000_000u128).to_string(),
         }),
         mint_to_address: contract_address.clone(),
     };
@@ -419,7 +419,7 @@ fn create_bonding_curve_instantiate_msg(
         code_id: config.bonding_curve_code_id as u64,
         msg: to_json_binary(&instantiate_msg)?, // Sérialise le message d'instanciation
         funds: vec![Coin::new(
-            Uint128::from(12_000_000_000_000u128),
+            Uint128::from(70_000_000_000_000u128),
             new_token_denom.clone(),
         )], // Envoyer des fonds si nécessaire
         label: [

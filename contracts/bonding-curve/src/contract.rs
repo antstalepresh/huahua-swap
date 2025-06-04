@@ -26,7 +26,7 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    //this contract accepts only 12_000_000_000_000 token_denom for instantiation
+    //this contract accepts only 70_000_000_000_000 token_denom for instantiation
 
     if info.funds.len() != 1 {
         return Err(ContractError::InvalidFunds {});
@@ -34,7 +34,7 @@ pub fn instantiate(
         if info.funds[0].denom != msg.token_denom {
             return Err(ContractError::InvalidFunds {});
         }
-        if info.funds[0].amount != Uint128::from(12_000_000_000_000u128) {
+        if info.funds[0].amount != Uint128::from(70_000_000_000_000u128) {
             return Err(ContractError::InvalidFunds {});
         }
     }
@@ -237,7 +237,7 @@ fn execute_buy(
 
             config.token_sold += bought.tokens_bought.u128();
 
-            if config.token_sold == 12_000_000_000_000u128 {
+            if config.token_sold == 70_000_000_000_000u128 {
                 config.completed = true;
                 let complete_msg = CompleteBondingCurveMsg {
                     complete_bonding_curve: CompleteBondingCurve {
